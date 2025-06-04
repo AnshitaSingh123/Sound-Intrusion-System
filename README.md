@@ -21,7 +21,7 @@ using the **UrbanSound8K** dataset. The project uses both **traditional machine 
 
 ## 📁 Dataset
 
-This project uses the **[UrbanSound8K dataset](https://urbansound8k.readthedocs.io/en/latest/)** — a collection of 8,732 labeled sound excerpts (≤ 4 seconds).
+This project uses the **[UrbanSound8K dataset](https://urbansounddataset.weebly.com/urbansound8k.html)** — a collection of 8,732 labeled sound excerpts (≤ 4 seconds).
 
 **Focused sound classes:**
 
