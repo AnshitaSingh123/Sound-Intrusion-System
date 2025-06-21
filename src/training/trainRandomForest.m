@@ -54,7 +54,9 @@ figure;
 confusionchart(Y_test, Y_pred);
 title('Random Forest Confusion Matrix (MFCC Features)');
 
-%% 💾 Save model
-modelPath = 'models/rfModel_MFCC.mat';
+%% 💾 Save model and accuracy
+%% === Save Trained Model ===
+modelPath = fullfile('models', 'rfModel_MFCC.mat');
 save(modelPath, 'rfModel');
-fprintf("💾 Model saved to %s\n", modelPath);
+fprintf("✅ RF model saved at: %s\n", modelPath);
+
