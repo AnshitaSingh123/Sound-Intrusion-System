@@ -56,14 +56,18 @@ modelPath = fullfile('models', 'svm_model.mat');
 save(modelPath, 'svmModel');
 fprintf("✅ SVM model saved at: %s\n", modelPath);
 
+
 %% === Evaluate Model ===
 fprintf("📈 Evaluating model on test set...\n");
 Y_pred = predict(svmModel, X_test);
 
 accuracy = sum(Y_pred == Y_test) / numel(Y_test);
-fprintf("🎯 Test Accuracy: %.2f%%\n", accuracy * 100);
+fprintf("🎯 Accuracy: %.2f%%\n", accuracy * 100);
 
+%
 %% === Plot Confusion Matrix ===
 figure;
 confusionchart(Y_test, categorical(Y_pred));
 title('SVM Confusion Matrix (MFCC Features)');
+
+
