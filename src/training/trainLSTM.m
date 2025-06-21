@@ -1,27 +1,59 @@
-% File: src/training/trainLSTM.m
-% Purpose: Train and evaluate an LSTM using MFCC features
-
 clc; clear;
 
-%% === Load Pre-Extracted MFCC Features ===
-fprintf("\Loading pre-extracted MFCC features...\n");
-if isfile('src/feature_extraction/features_mfcc_spec.mat')
-    fprintf("\Features file found. Proceeding to load...\n");
-else
-    error("\Features file not found. Please check the path.");
+%% === Load Features ===
+fprintf("🔁 Loading pre-extracted MFCC features...\n");
+featurePath = fullfile('src', 'feature_extraction', 'features_mfcc_spec.mat');
+if ~isfile(featurePath)
+    error("❌ Features file not found at: %s", featurePath);
 end
-load('src/feature_extraction/features_mfcc_spec.mat', 'trainFeatures', 'testFeatures');
+load(featurePath, 'trainFeatures', 'testFeatures');
+fprintf("✅ Features loaded.\n");
 
-%% === Prepare Sequence Data ===
-fprintf("\Preparing training set...\n");
-XTrain = cellfun(@(x) x', {trainFeatures.mfcc}, 'UniformOutput', false);  % Each 13xT -> Tx13
-YTrain = categorical({trainFeatures.label});
+%% === Clean + Pad Training Set ===
+fprintf("📦 Preparing padded training set...\n");
+XTrain = {};
+YTrain = {};
+for i = 1:numel(trainFeatures)
+    x = trainFeatures(i).mfcc;
+    if isempty(x) || ~isnumeric(x), continue; end
+    x = padToLength(enforceTx13(x), 200);  % [200 x 13]
+    x = x';  % Transpose to [13 x 200]
+    XTrain{end+1,1} = x;
+    YTrain{end+1,1} = char(trainFeatures(i).label);
+end
+YTrain = categorical(YTrain);
+fprintf("✅ %d valid training samples\n", numel(XTrain));
 
-fprintf("\Preparing test set...\n");
-XTest = cellfun(@(x) x', {testFeatures.mfcc}, 'UniformOutput', false);
-YTest = categorical({testFeatures.label});
+%% === Clean + Pad Test Set ===
+fprintf("📦 Preparing padded test set...\n");
+XTest = {};
+YTest = {};
+for i = 1:numel(testFeatures)
+    x = testFeatures(i).mfcc;
+    if isempty(x) || ~isnumeric(x), continue; end
+    x = padToLength(enforceTx13(x), 200);  % [200 x 13]
+    x = x';  % Transpose to [13 x 200]
+    XTest{end+1,1} = x;
+    YTest{end+1,1} = char(testFeatures(i).label);
+end
+YTest = categorical(YTest);
+fprintf("✅ %d valid test samples\n", numel(XTest));
+fprintf("🧩 All sequences padded to [13 x 200]\n");
 
-%% === Define LSTM Network ===
+%% === Final Sanity Check ===
+if isempty(XTrain) || isempty(YTrain)
+    error("❌ No training data after preprocessing. Check MFCCs or padding logic.");
+end
+
+XTrain = cellfun(@(x) cast(x, 'single'), XTrain, 'UniformOutput', false);
+XTest  = cellfun(@(x) cast(x, 'single'), XTest,  'UniformOutput', false);
+
+XTrain = reshape(XTrain, [], 1);  % Enforce column cell
+XTest = reshape(XTest, [], 1);
+
+fprintf("👀 Sample shape check: [%d x %d]\n", size(XTrain{1},1), size(XTrain{1},2));
+
+%% === Define LSTM ===
 inputSize = 13;
 numHiddenUnits = 64;
 numClasses = numel(categories(YTrain));
@@ -33,32 +65,55 @@ layers = [
     reluLayer
     fullyConnectedLayer(numClasses)
     softmaxLayer
-    classificationLayer];
+    classificationLayer
+];
 
 options = trainingOptions('adam', ...
     'MaxEpochs', 30, ...
     'MiniBatchSize', 32, ...
+    'SequenceLength', 'longest', ...
     'Shuffle', 'every-epoch', ...
     'ValidationData', {XTest, YTest}, ...
     'Verbose', false, ...
     'Plots', 'training-progress');
 
-%% === Train LSTM Model ===
-fprintf("\Training LSTM model...\n");
+%% === Train Model ===
+fprintf("🚀 Training LSTM model...\n");
 lstmModel = trainNetwork(XTrain, YTrain, layers, options);
 
-%% === Save Trained Model ===
-modelPath = fullfile('models', 'lstm_model.mat');
-save(modelPath, 'lstmModel');
-fprintf("\LSTM model saved at: %s\n", modelPath);
+%% === Save Model ===
+if ~exist('models', 'dir')
+    mkdir('models');
+end
+save(fullfile('models', 'lstm_model.mat'), 'lstmModel');
+fprintf("💾 Saved to models/lstm_model.mat\n");
 
-%% === Evaluate Model ===
-fprintf("\Evaluating model on test set...\n");
+%% === Evaluate ===
+fprintf("📊 Evaluating...\n");
 YPred = classify(lstmModel, XTest);
-accuracy = sum(YPred == YTest) / numel(YTest);
-fprintf("\Test Accuracy: %.2f%%\n", accuracy * 100);
+acc = mean(YPred == YTest);
+fprintf("✅ Test Accuracy: %.2f%%\n", acc * 100);
 
-%% === Plot Confusion Matrix ===
+%% === Confusion Matrix ===
 figure;
 confusionchart(YTest, YPred);
-title('LSTM Confusion Matrix (MFCC Features)');
+title("LSTM Confusion Matrix (MFCC Padded)");
+
+%% === Helper: Force [T x 13] ===
+function x = enforceTx13(x)
+    if size(x,1) == 13 && size(x,2) ~= 13
+        x = x';  % transpose if [13 x T] → [T x 13]
+    end
+end
+
+%% === Helper: Pad or Truncate to targetT ===
+function x = padToLength(x, targetT)
+    [T, D] = size(x);
+    if T == targetT
+        return;
+    elseif T > targetT
+        x = x(1:targetT, :);  % truncate
+    else
+        x = [x; zeros(targetT - T, D)];  % pad
+    end
+end
