@@ -40,9 +40,9 @@ knnModel = fitcknn(X_train, Y_train, ...
     'Standardize', true, ...
     'Distance', 'euclidean');
 
-%% === Save Trained Model ===
+% === Save Trained Model and Accuracy ===
 modelPath = fullfile('models', 'knn_model.mat');
-save(modelPath, 'knnModel');
+save(modelPath, 'knnModel', 'accuracy');
 fprintf("✅ KNN model saved at: %s\n", modelPath);
 
 %% === Evaluate Model ===
