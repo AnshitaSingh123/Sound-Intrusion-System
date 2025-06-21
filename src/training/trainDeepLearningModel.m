@@ -69,10 +69,21 @@ fprintf("✅ Test Accuracy: %.2f%%\n", acc * 100);
 figure;
 confusionchart(YTest, YPred);
 title(sprintf("CNN - UrbanSound8K (%s)", ternary(useMFCC, 'MFCC', 'Spectrogram')));
+% %% 🎯 Evaluate Accuracy (No change here, 'acc' is already calculated)
+% YPred = classify(net, XTest);
+% acc = mean(YPred == YTest);
+% fprintf("✅ Test Accuracy: %.2f%%\n", acc * 100);
+% figure;
+% confusionchart(YTest, YPred);
+% title(sprintf("CNN - UrbanSound8K (%s)", ternary(useMFCC, 'MFCC', 'Spectrogram')));
+
 %% 💾 Save Trained Model
 modelName = ternary(useMFCC, 'cnn_UrbanSound_MFCC.mat', 'cnn_UrbanSound_Spectrogram.mat');
-save(fullfile('models', modelName), 'net');
-fprintf("💾 Model saved as: models/%s\n", modelName);
+
+% ⭐ IMPORTANT CHANGE: Save 'acc' along with 'net'
+save(fullfile('models', modelName), 'net', 'acc');
+fprintf("💾 Model saved as: models/%s with accuracy %.2f%%\n", modelName, acc * 100);
+
 %% Helper: ternary-like function
 function out = ternary(cond, a, b)
     if cond
