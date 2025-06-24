@@ -1,6 +1,6 @@
 function loadAndPreprocessUrbanSound8K()
     % === Paths ===
-    dataPath = 'data/UrbanSound8K/';
+    dataPath = fullfile('data', 'UrbanSound8K');
     audioPath = fullfile(dataPath, 'audio');
     metadataFile = fullfile(dataPath, 'metadata', 'UrbanSound8K.csv');
 
@@ -70,4 +70,4 @@ function loadAndPreprocessUrbanSound8K()
         'trainData', 'valData', 'testData');
 
     fprintf("✅ Preprocessing complete. Saved to processed_data.mat\n");
-end
+end  % <<< Make sure this 'end' exists and is not commented or broken
